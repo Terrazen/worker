@@ -1,4 +1,4 @@
-from src.models import Lock
+from gittf.models import Lock
 
 class FilePlanStorageClient:
     def __init__(self):
