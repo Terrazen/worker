@@ -22,38 +22,35 @@ class GitTFWorker:
         self.plan_storage_client = plan_storage_client
 
 
+    # DOCS: terraform version and use of tfenv
     def run(self, action):
-        if self.project.terraform_version is not None:
-            if self.project.terraform_version not in SUPPORTED_TF_VERSIONS:
-                logger.error(f"Unsupported terraform version selected: {self.project.terraform_version}")
-                return {
-                    "summary": "Invalid Project TF Version.",
-                    "text":f"Terraform version must be one of: {', '.join(SUPPORTED_TF_VERSIONS)}",
-                    "conclusion": "failure"
-                }
-            else:
-                logger.info(f"Selecting Terraform Version: {self.project.terraform_version}")
-                subprocess.run(f"echo 'terraform {self.project.terraform_version}' > {self.project_path}/.tool-versions", shell=True, check=True, capture_output=True)
-
-        else:
-            if self.config.default_terraform_version not in SUPPORTED_TF_VERSIONS:
-                logger.error(f"Unsupported terraform version selected: {self.config.default_terraform_version}")
-                return {
-                    "summary": "Invalid Default TF Version.",
-                    "text":f"Terraform version must be one of: {', '.join(SUPPORTED_TF_VERSIONS)}",
-                    "conclusion": "failure"
-                }
-            else:
-                logger.info(f"Selecting Terraform Version: {self.config.default_terraform_version}")
-                subprocess.run(f"echo 'terraform {self.config.default_terraform_version}' > {self.project_path}/.tool-versions", shell=True, check=True, capture_output=True)
-
-        # Get the workflow for the project
+        tf_version = self.project.terraform_version if self.project.terraform_version is not None else self.config.default_terraform_version
         workflow = Workflow.parse_obj(self.config.workflows.get(self.project.workflow, {}))
+        env = self.create_env(tf_version)
 
+        # TODO: implement drift detection
+        assert action in ['plan', 'apply']
+        if action == 'apply':
+            self.plan_storage_client.get_project_plan(f"{self.project_path}/plan")  # this should download the plan
+
+        conclusion, output = self._run_commands(workflow.get_commands(action), env)
+        
+        if action == 'plan' and conclusion == 'success':
+            self.plan_storage_client.save_plan_and_lock(f"{self.project_path}/plan")
+
+        return {
+                "summary": f"{action.capitalize()} Output",
+                "text": output,
+                "conclusion":conclusion
+            }
+
+    def create_env(self, tf_version):
         path = os.environ['PATH']
         env = {
             'WORKSPACE': self.project.workspace or 'default',
-            'PATH': path
+            'PATH': path,
+            'TFENV_ARCH': 'arm64',
+            'TFENV_TERRAFORM_VERSION': tf_version
         }
 
         if settings.self_hosted is False:
@@ -62,39 +59,8 @@ class GitTFWorker:
                 env['AWS_ACCESS_KEY_ID'] = credentials['AccessKeyId']
                 env['AWS_SECRET_ACCESS_KEY'] = credentials['SecretAccessKey']
                 env['AWS_SESSION_TOKEN'] = credentials['SessionToken']
+        return env
 
-
-        if action == 'plan':
-            conclusion, output = self._run_commands(workflow.get_commands('plan'), env)
-
-            lock = Lock(
-                project=self.project,
-                workflow=workflow
-            )
-
-            if conclusion == 'success':
-                self.plan_storage_client.save_plan_and_lock(f"{self.project_path}/plan", lock)
-
-            # TODO: figure out how to trim this if in CLI mode
-            return {
-                    "summary": "Plan Output",
-                    "text":f"```diff\n{output}\n```",
-                    "conclusion":conclusion
-                }
-        elif action == 'apply':
-
-            self.plan_storage_client.get_project_plan(f"{self.project_path}/plan")  # this should download the plan
-            conclusion, output = self._run_commands(workflow.get_commands('apply'), env)
-            return {
-                    "summary": "Apply Output",
-                    "text":f"```diff\n{output}\n```",
-                    "conclusion":conclusion
-                }
-
-        # TODO: implement drift detection
-        elif action == 'drift_detection': #pragma: no cover
-            pass
-        
     # TODO: populate environment with variables from https://www.runatlantis.io/docs/custom-workflows.html
     def _run_commands(self, commands, env):
         output = None
