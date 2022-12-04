@@ -1,12 +1,12 @@
 import os
 import click
 import yaml
-from src.settings import settings
-from src.worker import GitTFWorker
-from src.models import Config
-from src.logger import logger
-from src.adapters.vcs.github import GitHubVCS
-from src.adapters.plan_storage.file import FilePlanStorageClient
+from gittf.settings import settings
+from gittf.worker import GitTFWorker
+from gittf.models import Config
+from gittf.logger import logger
+from gittf.adapters.vcs.github import GitHubVCS
+from gittf.adapters.plan_storage.file import FilePlanStorageClient
 
 @click.group()
 def main():
