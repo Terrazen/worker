@@ -5,7 +5,7 @@ setup(
     name="gittf",
     version="0.1",
     description="Terraform CI/CD utility",
-    packages=['gittf', 'gittf.adapters'],
+    packages=find_packages(),
     install_requires=[
         "Click==8.0.1",
         "pyyaml==5.4.1",
