@@ -111,3 +111,6 @@ class VCSStatus(BaseModel):
     summary: str
     text: str
     conclusion: Conclusion
+
+class WorkerAPIRequest(BaseModel):
+    payload: str

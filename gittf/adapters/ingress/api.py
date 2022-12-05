@@ -1,13 +1,13 @@
 import jwt
 from fastapi import FastAPI
 from gittf.settings import settings
-from gittf.models import WorkerRequest
+from gittf.models import WorkerRequest, WorkerAPIRequest
 from gittf.adapters.ingress.run_worker import run_worker
 
 app = FastAPI()
 
 @app.get('/health')
-def health():
+def health(): # pragma: no cover
     return {
         "env": settings.env,
         "app_url": settings.app_url,
@@ -16,8 +16,8 @@ def health():
     }
 
 @app.post('/')
-def worker_endpoint(token):
-    decoded = jwt.decode(token, options={"verify_signature": False})
+def worker_endpoint(req: WorkerAPIRequest):
+    decoded = jwt.decode(req.payload, options={"verify_signature": False}, algorithms='HS256')
     request: WorkerRequest = WorkerRequest(**decoded)
     try:
         return {'version': settings.version}

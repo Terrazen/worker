@@ -1,12 +1,23 @@
 import pytest
 import os
+from datetime import datetime, timedelta
+from jose import jwt
+from typing import Optional
 
 from gittf.adapters.ingress.run_worker import run_worker
-from gittf.models import WorkerRequest, Config, Project, Roles, AWSStorage, S3Storage
+from gittf.models import WorkerRequest, Config, Project, Roles
 
-@pytest.mark.parametrize('repo_location', [f'{os.path.dirname(os.path.abspath(__file__))}/demo'], indirect=True)
-def test_github_request(sts_client, s3_client):
-    response = run_worker(request=WorkerRequest(
+def create_jwt(data: dict, expires_minutes: Optional[int] = 5):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(to_encode, 'foo', algorithm='HS256')
+    return encoded_jwt
+    
+@pytest.mark.parametrize('mock_repo_location', [f'{os.path.dirname(os.path.abspath(__file__))}/demo'], indirect=True)
+def test_api_returns_current_version(test_api):
+    payload = create_jwt(WorkerRequest(
         # TODO: remove this and mock the cloning method
         token=os.getenv("GITHUB_TOKEN"),
         pull_request_number=17,
@@ -36,12 +47,6 @@ def test_github_request(sts_client, s3_client):
         vcs='github',
         check_run_id=4,
         action='plan'
-    ))
-
-    assert response.conclusion == 'failure'
-
-#def test_api_returns_current_version():
-#    assert True is False
-
-#def test_api_handles_jwt_request():
-#    assert True is False
+    ).dict())
+    resp = test_api.post('/', json={'payload': payload})
+    assert 'version' in resp.json()

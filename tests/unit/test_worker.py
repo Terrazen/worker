@@ -4,7 +4,7 @@ from gittf.worker import GitTFWorker
 from gittf.models import Project, Config, Roles
 
 
-def test_unsuccessful_plan(s3_client, sts_client):
+def test_unsuccessful_plan(s3_client):
     project = Project(
         name="foo",
         dir="."
@@ -21,7 +21,7 @@ def test_unsuccessful_plan(s3_client, sts_client):
     assert result.conclusion == 'failure'
     assert 'Terraform initialized in an empty directory' in result.text
 
-def test_successful_plan(s3_client, sts_client):
+def test_successful_plan(s3_client):
     dir = f"{os.path.dirname(os.path.abspath(__file__))}/test_terraform/"
     try:
         shutil.rmtree(f"{dir}/.terraform")
@@ -50,7 +50,7 @@ def test_successful_plan(s3_client, sts_client):
 
     os.remove(f"{dir}/plan")
 
-def test_unsuccessful_apply(sts_client):
+def test_unsuccessful_apply():
     project = Project(
         name="foo",
         dir="."
