@@ -5,8 +5,6 @@ from gittf.settings import settings
 from gittf.worker import GitTFWorker
 from gittf.models import Config
 from gittf.logger import logger
-from gittf.adapters.vcs.github import GitHubVCS
-from gittf.adapters.plan_storage.file import FilePlanStorageClient
 
 @click.group()
 def main():
@@ -29,7 +27,7 @@ def git_tf(project, action):
         return print(f"Could not find project with name {project}")
 
 
-    worker = GitTFWorker(os.getcwd(), "", selected_project, config, FilePlanStorageClient())
+    worker = GitTFWorker(os.getcwd(), "", selected_project, config)
     result = worker.run(action)
 
     print(result['text'])
@@ -46,7 +44,6 @@ def get_configuration(repo_location):
             found_config = True
             break
 
-    # TODO: handle this correctly and report back to VCS provider
     if found_config is False:
         raise Exception("Could not find config file")
 

@@ -28,6 +28,14 @@ class Hosting(BaseModel):
     self: bool = False
     worker_url: Optional[str] = None
 
+class DriftDetectionSchedule(str, Enum):
+    weekly = 'weekly'
+    monthly = 'monthly'
+
+class DriftDetection(BaseModel):
+    enabled: bool = False
+    schedule: DriftDetectionSchedule
+
 class Config(BaseModel):
     version: str
     automerge: Optional[bool] = False
@@ -39,6 +47,7 @@ class Config(BaseModel):
     default_terraform_version: Optional[str] = "v1.2.9"
     roles: Optional[Roles] = Roles()
     hosting: Optional[Hosting]
+    drift_detection: Optional[DriftDetection]
 
 class Lock(BaseModel):
     project: Project
@@ -61,29 +70,31 @@ class AWSCredentials(BaseModel):
 
 class S3Storage(BaseModel):
     path: str
+    bucket_name: str
+    credentials: AWSCredentials
 
 class AWSStorage(BaseModel):
     s3: Optional[S3Storage]
-    credentials: AWSCredentials
 
 class PlanStorage(BaseModel):
     aws: Optional[AWSStorage]
 
 
 class WorkerRequest(BaseModel):
-    token: str
     pull_request_number: str
     config: Config
     project: Project
     installation_id: str
     repo: str
     org: str
+    clone_url: str
     branch: str
     head_sha: str
     vcs: VCSEnum
     action: ActionEnum
     check_run_id: str
-    plan_storage: Optional[PlanStorage] # If not provided it will use the credentials of the worker
+    drift_detection: bool = False
+    plan_storage: PlanStorage # If not provided it will use the credentials of the worker
 
 class Conclusion(str, Enum):
     action_required = 'action_required'
@@ -100,9 +111,3 @@ class VCSStatus(BaseModel):
     summary: str
     text: str
     conclusion: Conclusion
-
-class VCSInProgressStatus(BaseModel):
-    pass
-
-class VCSCompletedStatus(BaseModel):
-    pass

@@ -9,13 +9,14 @@ setup(
     install_requires=[
         "Click==8.0.1",
         "pyyaml==5.4.1",
+        "jose"
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     test_suite='tests',
     entry_points={
         "console_scripts": [
-            "gittf = gittf.cli:main",
+            "gittf = gittf.adapters.ingress.cli:main",
         ]
     },
 )
