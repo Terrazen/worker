@@ -1,5 +1,6 @@
 import boto3
 from botocore.errorfactory import ClientError
+from botocore.client import Config
 
 from gittf.logger import logger
 from gittf.models import S3Storage
@@ -8,7 +9,10 @@ class S3PlanStorageClient:
     def __init__(self, storage: S3Storage):
         self.client = boto3.client('s3',
             aws_access_key_id=storage.credentials.aws_access_key_id,
-            aws_secret_access_key=storage.credentials.aws_secret_access_key)
+            aws_secret_access_key=storage.credentials.aws_secret_access_key,
+            aws_session_token=storage.credentials.aws_session_token,
+            region_name=storage.region,
+            config=Config(signature_version="s3v4"))
 
         self.storage_details = storage
 

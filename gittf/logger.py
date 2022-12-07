@@ -1,5 +1,3 @@
-import logging
-import os
+from aws_lambda_powertools import Logger
 
-logger = logging.getLogger(__name__)
-logger.setLevel(os.getenv('LOG_LEVEL', 'DEBUG'))
+logger = Logger()

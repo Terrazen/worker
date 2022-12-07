@@ -67,9 +67,11 @@ class VCSEnum(str, Enum):
 class AWSCredentials(BaseModel):
     aws_access_key_id: str
     aws_secret_access_key: str
+    aws_session_token: str
 
 class S3Storage(BaseModel):
     path: str
+    region: str
     bucket_name: str
     credentials: AWSCredentials
 
@@ -95,6 +97,7 @@ class WorkerRequest(BaseModel):
     check_run_id: str
     drift_detection: bool = False
     plan_storage: PlanStorage # If not provided it will use the credentials of the worker
+    env: Optional[dict] = None
 
 class Conclusion(str, Enum):
     action_required = 'action_required'

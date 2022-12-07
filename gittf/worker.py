@@ -9,11 +9,11 @@ from gittf.settings import settings
 
 
 class GitTFWorker:
-    def __init__(self, repo_location, project: Project, config: Config):
+    def __init__(self, repo_location, project: Project, config: Config, env: dict = {}):
         self.repo_location = repo_location
         self.project = project
         self.config = config
-        #self.org = org
+        self.env = env
         self.project_path = f"{self.repo_location}/{self.project.dir}"
 
     # DOCS: terraform version and use of tfenv
@@ -34,22 +34,17 @@ class GitTFWorker:
             conclusion=conclusion,
             )
 
+    # TODO: inject env from original payload
     def create_env(self, tf_version):
         path = os.environ['PATH']
         env = {
             'WORKSPACE': self.project.workspace or 'default',
             'PATH': path,
             'TFENV_ARCH': 'arm64',
-            'TFENV_TERRAFORM_VERSION': tf_version
+            'TFENV_TERRAFORM_VERSION': tf_version,
+            **self.env
         }
 
-        # TODO: move this to orchestrator
-        #if settings.self_hosted is False:
-        #    if self.config.roles.aws is not None:
-        #        credentials = AWS.retrieve_assume_role_credentials(self.config.roles.aws, self.org)
-        #        env['AWS_ACCESS_KEY_ID'] = credentials['AccessKeyId']
-        #        env['AWS_SECRET_ACCESS_KEY'] = credentials['SecretAccessKey']
-        #        env['AWS_SESSION_TOKEN'] = credentials['SessionToken']
         return env
 
     # TODO: populate environment with variables from https://www.runatlantis.io/docs/custom-workflows.html
@@ -57,23 +52,30 @@ class GitTFWorker:
         output = None
 
         try:
-            output = subprocess.run(
+            process_output = subprocess.run(
                 commands,
                 shell=True,
                 env=env,
                 cwd=f"{self.project_path}",
-                check=True,
+                #check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT
             )
-
-            # We need to remove 2 leading whitespaces for GitHub diff
-            # to render the plan correctly.
-            output = output.stdout.decode("utf-8")
+            output = process_output.stdout.decode("utf-8")
             result = '\n'.join([re.sub(r'^\s{2}', '', line) for line in output.split('\n')])
             logger.info(f"Commands output: {output}")
+            logger.info(f'Return code: {process_output.returncode}')
+ 
+            if process_output.returncode == 2 and 'terraform plan -detailed-exitcode' in commands:
+                return 'neutral', result 
+            
+            if process_output.returncode != 0:
+                raise subprocess.CalledProcessError
+            # We need to remove 2 leading whitespaces for GitHub diff
+            # to render the plan correctly.
             return 'success', result
+            # TODO: test this reports back to GitHub
         except subprocess.CalledProcessError as e:
             logger.error("Command returned non-zero exit code.")
-            logger.error(e.stdout.decode('utf-8'))
-            return 'failure', e.stdout.decode('utf-8')
+            logger.error(process_output.stdout.decode('utf-8'))
+            return 'failure', process_output.stdout.decode('utf-8')

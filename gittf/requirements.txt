@@ -6,3 +6,7 @@ click
 pyyaml
 awscli
 PyJWT
+pydantic[dotenv]
+fastapi
+uvicorn
+botocore[crt]

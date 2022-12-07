@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     terraform_version: str = Field(None, env='TERRAFORM_VERSION')
 
     # GitTF Settings
-    gittf_api_url: str = "https://api.gittf.com"
+    gittf_api_url: str = Field(..., env='GITTF_API_URL')
     version: str = Field(..., env='GITTF_VERSION')
     self_hosted: bool = Field(True, env='SELF_HOSTED')
     config_files: List[str] = ["gittf.yaml", "atlantis.yaml", "atlantis.yml"]

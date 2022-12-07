@@ -13,7 +13,7 @@ class Step(BaseModel):
             if value == 'init':
                 command = f"terraform init -no-color -input=false && terraform workspace select $WORKSPACE"
             elif value == 'plan':
-                command = f"terraform plan -no-color -input=false -out=plan | grep -v Refreshing"
+                command = f"terraform plan -detailed-exitcode -no-color -input=false -out=plan | grep -v Refreshing"
             elif value == 'apply':
                 command = f"terraform apply -no-color -input=false plan | grep -v Refreshing"
             else:
@@ -29,7 +29,7 @@ class Step(BaseModel):
                 command = f"terraform init -no-color -input=false {extra_args} && terraform workspace select $WORKSPACE"
             elif key == 'plan':
                 extra_args = " ".join(value[key]['extra_args'])
-                command = f"terraform plan -no-color -input=false -out=plan {extra_args} | grep -v Refreshing"
+                command = f"terraform plan -detailed-exitcode -no-color -input=false -out=plan {extra_args} | grep -v Refreshing"
             elif key == 'apply':
                 extra_args = " ".join(value[key]['extra_args'])
                 command = f"terraform apply -no-color -input=false {extra_args} plan | grep -v Refreshing"
