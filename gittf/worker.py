@@ -34,7 +34,6 @@ class GitTFWorker:
             conclusion=conclusion,
             )
 
-    # TODO: inject env from original payload
     def create_env(self, tf_version):
         path = os.environ['PATH']
         env = {
@@ -66,8 +65,10 @@ class GitTFWorker:
             logger.info(f"Commands output: {output}")
             logger.info(f'Return code: {process_output.returncode}')
  
+            # TODO: the process is returning a zero exit code if there is a command that succeeds after
+            # the plan. How do we capture the terraform plan exit code and then return the exit code
             if process_output.returncode == 2 and 'terraform plan -detailed-exitcode' in commands:
-                return 'neutral', result 
+                return 'neutral', result
             
             if process_output.returncode != 0:
                 raise subprocess.CalledProcessError
